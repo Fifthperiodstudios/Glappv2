@@ -6,6 +6,8 @@ import RobotoText from "./RobotoTextComponent";
 import { Surface, Text } from "react-native-paper";
 import { View, SectionList, StyleSheet } from "react-native"
 import { getCourseViewProperties } from "../Statemanagement/Businesslogic";
+import GeneralInfoHeader from "./GeneralInfoHeaderComponent";
+import GeneralInfoCard from "./GeneralInfoCardComponent";
 
 function renderScheduleChangeItem(courseChange: CourseChange,
     coursesViewPropertiesMap: Map<string, CourseViewProperties>,
@@ -56,57 +58,12 @@ function renderScheduleChangeItem(courseChange: CourseChange,
 }
 
 function renderGeneralInfoCard(announcementsData: Announcement[]) {
-    let announcements: ReactNode[] = [];
-
-    let j = 0;
-    for (let announcement of announcementsData) {
-        announcements.push(
-            <RobotoText key={j} style={{ fontWeight: "bold", color: "#949494" }}>{new Date(announcement.date).toLocaleDateString('de-DE', { weekday: 'long', month: 'short', day: 'numeric' })}:</RobotoText>
-        );
-        j++;
-        announcements.push(
-            <Text key={j} style={{ color: '#757575', marginBottom: 5 }}>{announcement.text}</Text>
-        );
-        j++;
-    }
-
-    let marginVertical = 15;
-    if (announcements.length === 0) {
-        announcements.push(
-            <RobotoText key={j} style={{ fontWeight: "bold", color: "#949494" }}>Keine</RobotoText>
-        );
-        marginVertical = 0;
-    }
-
-    return (
-        <Surface theme={{
-            colors: {
-                elevation: {
-                    "level0": "#EDF5FF"
-                }
-            }
-        }}
-            elevation={0}
-            style={{
-                borderRadius: 10,
-                flex: 1,
-                marginVertical,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                marginBottom: 15,
-                flexDirection: "column",
-                alignItems: "flex-start"
-            }}>
-            {announcements}
-        </Surface>
-    );
+    return <GeneralInfoCard announcements={announcementsData} />
 }
 
 function renderGeneralInfoHeader(title: string) {
     return (
-        <Text variant="titleLarge" style={{ fontWeight: "bold", marginBottom: 5 }}>
-            {title}
-        </Text>
+        <GeneralInfoHeader title={title} />
     );
 }
 
@@ -205,10 +162,12 @@ export default function ScheduleChangesSectionListView(props: ScheduleChangesSec
     );
 }
 
-const scheduleChangeStyles = StyleSheet.create({
+export const scheduleChangeStyles = StyleSheet.create({
     listContainer: {
         paddingBottom: 50,
         paddingTop: 10,
         paddingHorizontal: 15
     }
 });
+
+export {renderGeneralInfoCard, renderGeneralInfoHeader};

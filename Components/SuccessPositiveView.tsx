@@ -1,24 +1,24 @@
 
 import { View, Image, Text, ViewStyle } from "react-native";
 
-type NoScheduleChangesViewProps = {
+type SuccessPositiveViewProps = {
+    headline: string,
+    subheader: string,
     style?: ViewStyle
 };
 
-export default function NoScheduleChangesView({ style }: NoScheduleChangesViewProps) {
+export default function SuccessPositiveView({ style, headline, subheader }: SuccessPositiveViewProps) {
 
     return (
         <View style={[{justifyContent: "center", alignItems: "center", marginHorizontal: 15, flex: 1 }, style]}>
-            <Image source={require('../assets/bluebackgroundgirl.png')} style={{ resizeMode: "contain", width: '75%', height: '40%' }} />
+            <Image source={require('../assets/greenbackgroundguy.png')} style={{ resizeMode: "contain", width: '75%', height: '40%' }} />
             <Text style={{ textAlign: "center", fontSize: 24, color: "#414141" }}>
-              Du hast aktuell keine Änderungen.
+              {headline}
             </Text>
             <Text style={{ textAlign: "center", fontSize: 14, color: "#757575" }}>
-                Beachte aber die allgemeinen Informationen oben.
+                {subheader}
             </Text>
         </View>
     );
 }
-
-export { NoScheduleChangesViewProps };
 

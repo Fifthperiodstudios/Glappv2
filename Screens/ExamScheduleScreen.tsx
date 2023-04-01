@@ -5,39 +5,17 @@ import { FlatList, View, StyleSheet, RefreshControl, ScrollView} from "react-nat
 
 import ListComponent from "../Components/ListComponent";
 import ScreenHeader from "../Components/ScreenHeaderComponent";
-import { Exam, ExamSchedule } from "../api/ApiModel";
+import { ExamSchedule } from "../api/ApiModel";
 import { DataHolder, FetchDataStatus, Repository } from "../repository/Repository";
 import { FileLocalDataSource, LocalDataSource } from "../repository/LocalDataSource";
 import { User } from "../api/LoginApi";
 import { NetworkDataSource, ServerDataSource } from "../api/NetworkApi";
-import { CourseViewProperties } from "../Statemanagement/AppModel";
 import { examScheduleStateChanged } from "../Statemanagement/AppSlice";
 import { ReactNode, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
 import ErrorView from "../Components/ErrorViewComponent";
 import { getCourseViewProperties, mapFromCoursesViewProperties } from "../Statemanagement/Businesslogic";
-import NoScheduleChangesView from "../Components/NoScheduleChangesView";
-
-/*
-
-eigentlich gibt es 2 Fälle:
-Examschedule
-1. Fall: Bisher noch nichts geladen:
-    laden aus dem Speicher oder Netzwerk
-    temporaryCoursesViewProperties auslesen
-    dispatchen(examsched, tempcourseviewprops)
-2. Fall: Bisher bereits geladen
-    laden nur aus dem Netzwerk
-        falls success_nochange:
-            nichts tun
-        falls success_datachange:
-            abspeichern
-            temporaryCoursesViewProperties auslesen
-            dispatchen()
-        falls fehler:
-            nichts tun, einfach das bestehende anzeigen
-
-*/
+import SuccessPositiveView from "../Components/SuccessPositiveView";
 
 function fetchOfflineFirstExams(
     user: User, 
@@ -146,12 +124,9 @@ export default function ExamScheduleScreen() {
             );
         }
     } else {
-        console.log("after else");
-        console.log(examScheduleModel);
-        console.log(examScheduleModel.exams);
         if (examScheduleModel.exams.length > 0) {
             content = (
-                <FlatList 
+                <FlatList
                         style={{flex: 1}}
                         contentContainerStyle={examStyles.listContainer} 
                         data={examScheduleModel.exams} 
@@ -180,7 +155,7 @@ export default function ExamScheduleScreen() {
                 <ScrollView
                     contentContainerStyle={{ flex:1, flexDirection: "column", justifyContent: "center"}}
                     refreshControl={refreshControl}>
-                    <NoScheduleChangesView />
+                    <SuccessPositiveView headline="Du hast aktuell keine eingetragenen bevorstehenden Klausuren." subheader=""/>
                 </ScrollView>
             );
         }

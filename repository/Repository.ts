@@ -354,8 +354,7 @@ async function fetchScheduleChangesFromNetwork(
             status: FetchDataStatus.SUCCESS_DATACHANGE,
             message: ""
         }
-        console.log("success");
-        console.log(data);
+
     }else if (networkResult.status === "no-change-since"){
         data = scheduleChangePlan;
         status = {

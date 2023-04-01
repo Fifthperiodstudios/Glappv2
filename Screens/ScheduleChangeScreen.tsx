@@ -7,13 +7,16 @@ import ScreenHeader from "../Components/ScreenHeaderComponent";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
 import { scheduleChangePlanStateChanged } from "../Statemanagement/AppSlice";
 import ErrorView from "../Components/ErrorViewComponent";
-import NoScheduleChangesView from "../Components/NoScheduleChangesView";
+import SuccessBalancedView from "../Components/SuccessBalancedView";
 import { NetworkDataSource, ServerDataSource } from "../api/NetworkApi";
 import { DataHolder, FetchDataStatus, Repository } from "../repository/Repository";
 import { mapFromCoursesViewProperties } from "../Statemanagement/Businesslogic";
 import { User } from "../api/LoginApi";
-import ScheduleChangesSectionListView from "../Components/ScheduleChangesSectionListView";
+import ScheduleChangesSectionListView, { renderGeneralInfoCard, renderGeneralInfoHeader, scheduleChangeStyles } from "../Components/ScheduleChangesSectionListView";
 import { ScheduleChangePlan } from "../api/ApiModel";
+import SuccessPositiveView from "../Components/SuccessPositiveView";
+import GeneralInfoHeader from "../Components/GeneralInfoHeaderComponent";
+import GeneralInfoCard from "../Components/GeneralInfoCardComponent";
 
 function fetchScheduleChangesFromNetwork(
     user: User, 
@@ -26,9 +29,7 @@ function fetchScheduleChangesFromNetwork(
         const {data, status} = result;
         
         if (status.status === FetchDataStatus.SUCCESS_DATACHANGE) {
-            console.log("successs2");
             dispatch(scheduleChangePlanStateChanged({scheduleChangePlan: data, status}));
-            console.log("succ3");
         }
 
     }, (error: Error) => {
@@ -81,15 +82,13 @@ export default function ScheduleChangeScreen() {
         />
     );
 
-    let content: ReactNode;
+    let mainContent: ReactNode;
 
     if (scheduleChangePlanModel === null) {
         if (scheduleChangePlanState.status === FetchDataStatus.LOADING) {
-            console.log("thisisit");
-            content = (<View key={0} style={{ flex: 1 }} />);
+            mainContent = (<View style={{ flex: 1 }} />);
         } else {
-            console.log("fov");
-            content = (
+            mainContent = (
                 <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={{ flex: 1 }}
@@ -104,31 +103,49 @@ export default function ScheduleChangeScreen() {
         }
     } else {
         if (scheduleChangePlanModel.dayScheduleChanges.length > 0) {
-            console.log("favw");
-            content = (
+            mainContent = (
                 <ScheduleChangesSectionListView 
                     scheduleChangePlan={scheduleChangePlanModel}
                     coursesViewPropertiesMap={coursesViewPropertiesMap}
                     refreshControl={refreshControl}
                 />
             );
-        } else {
-            content = (
-                <ScrollView
-                    contentContainerStyle={{ flex:1, flexDirection: "column", justifyContent: "center"}}
-                    refreshControl={refreshControl}>
-                    <NoScheduleChangesView />
-                </ScrollView>
-            );
-        }
+        }else {
 
+            let content: ReactNode[] = [];
+            let key = 0;
+            if (scheduleChangePlanModel.announcements.length > 0) {
+                content.push(<GeneralInfoHeader key={key} title="Allgemeine Informationen" />);
+                key++;
+                content.push(<GeneralInfoCard key={key} announcements={scheduleChangePlanModel.announcements} />);
+                key++;
+            }
+
+            const headline = "Du hast aktuell keine Änderungen.";
+            const subheader = scheduleChangePlanModel.announcements.length > 0 ? "Beachte aber die allgemeinen Informationen oben" : "";
+
+            if (user.type === "student") {
+                content.push(<SuccessBalancedView key={key} style={{flex: 1}} headline={headline} subheader={subheader} />)
+            }else {
+                content.push(<SuccessPositiveView key={key} style={{flex: 1}} headline={headline} subheader={subheader} />)
+            }
+            
+            mainContent = (<ScrollView
+                            key={0}
+                            style={{ flex: 1 }}
+                            contentContainerStyle={{...scheduleChangeStyles.listContainer, flex: 1}}
+                            refreshControl={refreshControl}>
+                            {content}
+                        </ScrollView>);
+        }
+            
     }
 
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <StatusBar />
             <ScreenHeader text="Vertretungsplan" />
-            {content}
+            {mainContent}
         </SafeAreaView>
     );
 }
