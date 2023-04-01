@@ -4,8 +4,13 @@ const teacherLogin: string = `${baseUrl}/teachers`;
 
 async function loginStudent(username: string, password: string): Promise<User> {
     let endpoint = studentLogin + `/${username}/auth?password={password}`;
+    let response;
+    try {
+        response  = await fetch(endpoint);
+    }catch(e) {
+        throw new Error("NetworkError");
+    }
 
-    let response = await fetch(endpoint);
     let token = await evaluateResponse(response);
 
     return { username, token, type: "student" };
@@ -13,8 +18,13 @@ async function loginStudent(username: string, password: string): Promise<User> {
 
 async function loginTeacher(username: string, password: string) : Promise <User> {
     let endpoint = teacherLogin + `/${username}/auth?password=${password}`;
-
-    let response = await fetch(endpoint);
+    let response;
+    try {
+        response  = await fetch(endpoint);
+    }catch(e) {
+        throw new Error("NetworkError");
+    }
+     
     let token = await evaluateResponse(response);
 
     return { username, token, type: "teacher" };
@@ -29,12 +39,12 @@ async function evaluateResponse(response : Response) {
         console.log(token);
 
         if (!token) {
-            throw new Error("Response Format Error")
+            throw new Error("ResponseFormatError")
         }
 
         return token;
     } else {
-        throw new Error('Response Error');
+        throw new Error('ResponseError');
     }
 }
 

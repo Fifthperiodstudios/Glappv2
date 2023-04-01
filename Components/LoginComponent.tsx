@@ -1,23 +1,25 @@
 import { Button, Text, TextInput, useTheme } from "react-native-paper";
-import { Image, View, StyleSheet } from "react-native";
+import { Image, View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import PolicyAgreements from "./PolicyAgreements";
 import { useState } from "react";
+import { useAppSelector } from "../Statemanagement/hooks";
+import { LoginStates } from "../Statemanagement/LoginSlice";
 
 type LoginComponentProps = {
     type: string,
     onLogin: (username: string, password: string) => void,
-    errorMessage?: string,
-    showError?: boolean
 }
 
 export default function LoginComponent(props: LoginComponentProps) {
 
     let theme = useTheme();
+    let loginStatus = useAppSelector((state) => state.loginReducer.status);
+
     const [username, setUsername] = useState("peterparker");
     const [password, setPassword] = useState("");
     
     return (
-        <View style={{flex: 1}}>
+        <KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <Text variant="headlineMedium"  style={{...loginScreenStyles.marginEnds, ...loginScreenStyles.loginText}}>
             Login
             </Text>
@@ -49,13 +51,16 @@ export default function LoginComponent(props: LoginComponentProps) {
                 
                 </Button>
 
-                {props.showError !== undefined && props.showError === true ? 
-                    <Text>{props.errorMessage}</Text> : null
+                {
+                    (loginStatus.status === LoginStates.ERROR) ? <Text style={{ marginTop: 5, textAlign: "center", color: "darkred"}}>{
+                        loginStatus.message === "NetworkError" ? "Netzwerkfehler: Prüfe deine Internetverbindung" : "Login nicht erfolgreich. Prüfe dein Passwort"
+                    
+                    }</Text> : null
                 }
             </View>
 
             <PolicyAgreements marginEnds={loginScreenStyles.marginEnds} color="#6AA5EA"/>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -73,7 +78,7 @@ const loginScreenStyles = StyleSheet.create({
     gymloTextContainer: {
         flex: 1, 
         flexDirection: 'row',
-         justifyContent: 'center'
+        justifyContent: 'center'
     },
     loginFieldsContainer: {
         flex: 2, 

@@ -13,7 +13,7 @@ import SettingsHeader from "../Components/SettingsHeaderComponent";
 import { RootStackParamList } from "../AppContent";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
 import { coursesViewPropertiesChanged, courseViewPropertiesChanged, resetState, settingsChanged } from "../Statemanagement/AppSlice";
-import { loginStateChanged } from "../Statemanagement/LoginSlice";
+import { LoginStates, loginStateChanged } from "../Statemanagement/LoginSlice";
 import { deleteLocalDataSource, FileLocalDataSource } from "../repository/LocalDataSource";
 import { colors, CourseViewProperties } from "../Statemanagement/AppModel";
 import { Repository } from "../repository/Repository";
@@ -116,10 +116,10 @@ export default function SettingsScreen() {
                         deleteLocalDataSource().then(() => {
                             console.log("localdatasource deleted");
                             dispatch(resetState());
-                            dispatch(loginStateChanged({isSignedIn: false, message: "LOGGEDOUT"}));
+                            dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
                         }, (error) => {
                             dispatch(resetState());
-                            dispatch(loginStateChanged({isSignedIn: false, message: "LOGGEDOUT"}));
+                            dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
                             console.log(error.message);
                         });
                     }} 

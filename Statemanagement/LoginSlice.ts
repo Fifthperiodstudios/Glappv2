@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { DataStatus } from "../repository/Repository";
 
 /*
 Redux explained:
@@ -9,12 +10,21 @@ An Action is an object that describes an event that had an effect on the applica
 
 interface LoginState {
     isSignedIn: boolean,
-    message: string
+    status: DataStatus
+}
+
+const LoginStates = {
+    LOGGED_OUT: 0,
+    LOGGED_IN: 1,
+    ERROR: 2
 }
 
 const initialState: LoginState = {
     isSignedIn: false,
-    message: "" /*Is a message about the LoginStatus*/,
+    status: {
+        status: LoginStates.LOGGED_OUT,
+        message: ""
+    }
 }
 
 export const loginSlice = createSlice({
@@ -23,10 +33,12 @@ export const loginSlice = createSlice({
     reducers: {
         loginStateChanged: (state, action: PayloadAction<LoginState>) => {
             state.isSignedIn = action.payload.isSignedIn;
-            state.message = action.payload.message;
+            state.status = action.payload.status;
         },
     }
 });
 
 export const {loginStateChanged} = loginSlice.actions;
+export {LoginStates}
+
 export default loginSlice.reducer;

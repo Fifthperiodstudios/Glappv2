@@ -9,7 +9,7 @@ import { RootStackParamList } from '../AppContent';
 import LoginComponent from '../Components/LoginComponent'
 import { loggedIn } from '../Statemanagement/AppSlice';
 import { useAppDispatch } from '../Statemanagement/hooks';
-import { loginStateChanged } from '../Statemanagement/LoginSlice';
+import { loginStateChanged, LoginStates } from '../Statemanagement/LoginSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
@@ -19,29 +19,38 @@ export default function LoginScreen({navigation, route} : Props) {
   let onLoginStudent = function(username: string, password: string) {
     console.log("logging In");
     loginStudent(username, password).then((user) => {
-      dispatch(loggedIn({...user}));
+      dispatch(loggedIn(user));
 
       dispatch(loginStateChanged({
         isSignedIn: true,
-        message: "SUCCESS"
+        status: {
+          status: LoginStates.LOGGED_IN,
+          message: ""
+        }
       }));
     },(error: Error) => {
       console.log(error.message);
       
       dispatch(loginStateChanged({
         isSignedIn: false,
-        message: error.message,
+        status: {
+          status: LoginStates.ERROR,
+          message: error.message
+        },
       }));
     });
   };
 
   let onLoginTeacher = function(username: string, password: string) {
     loginTeacher(username, password).then((user) => {
-      dispatch(loggedIn({...user}));
+      dispatch(loggedIn(user));
 
       dispatch(loginStateChanged({
         isSignedIn: true,
-        message: "SUCCESS"
+        status: {
+          status: LoginStates.LOGGED_IN,
+          message: ""
+        }
       }));
     },(error: Error) => {
 
@@ -49,7 +58,10 @@ export default function LoginScreen({navigation, route} : Props) {
 
       dispatch(loginStateChanged({
         isSignedIn: false,
-        message: error.message,
+        status: {
+          status: LoginStates.ERROR,
+          message: error.message
+        },
       }));
     });
   };

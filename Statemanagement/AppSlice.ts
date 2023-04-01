@@ -50,7 +50,7 @@ export const appSlice = createSlice({
         loggedIn: (state, action: PayloadAction<User>) => {
             return {
                 ...state,
-                user: action.payload
+                user: {...action.payload}
             };
         },
 
