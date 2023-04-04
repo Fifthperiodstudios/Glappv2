@@ -387,7 +387,7 @@ async function fetchExamsFromNetwork(
                 data: cachedExamSchedule,
                 status: {
                     status: FetchDataStatus.NETWORK_ERROR_OTHER,
-                    message: ""
+                    message: message.substring(0,20)
                 }
             };
         }

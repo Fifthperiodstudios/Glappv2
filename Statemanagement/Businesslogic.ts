@@ -28,23 +28,29 @@ function createCoursesViewProperties(timetable: Timetable) : CourseViewPropertie
     const coursesViewProperties = [];
     const courseMap = new Map<string, CourseViewProperties>();
 
-    if (courseMap.get("empty") === undefined) {
-        const emptyCourse = getEmptyDefaultCourseViewProperties();
-        coursesViewProperties.push(emptyCourse);
-        courseMap.set(emptyCourse.courseid, emptyCourse);
-    }
+    //We add a courseViewProperty for the empty course
+    const emptyCourse = getEmptyDefaultCourseViewProperties();
+    coursesViewProperties.push(emptyCourse);
+    courseMap.set(emptyCourse.courseid, emptyCourse);
 
     const shuffledColors = shuffleArray(colors);
 
     for (let i = 0; i < timetable.schedule.length; i++) {
-        for (let j = 0; j < timetable.schedule[i].courses.length; j++) {
-            const course = timetable.schedule[i].courses[j].course;
+        for (let j = 0; j < timetable.schedule[i].periods.length; j++) {
+            const course = timetable.schedule[i].periods[j].course;
 
-            if (courseMap.get(course.abbrev) !== undefined) {
+            //We have already added a courseViewProps for the empty course, so we can skip it
+            if (course === undefined) {
                 continue;
             }
 
-            if (course.hasOwnProperty("abbrev")) {
+            //if its not an empty course and we have already added a courseViewProps for it, skip it
+            if (courseMap.get(course.id) !== undefined) {
+                continue;
+            }
+
+            //if the course does not have a courseViewProp we create one
+            if (course.hasOwnProperty("id")) {
                 let randomColor = shuffledColors.pop();
 
                 if (randomColor === undefined) {
@@ -64,7 +70,7 @@ function createCoursesViewProperties(timetable: Timetable) : CourseViewPropertie
 
 function createCourseViewProperties(course: Course, color: string): CourseViewProperties{
     const courseViewProperties = {
-        courseid: course.abbrev,
+        courseid: course.id,
         label: course.abbrev,
         
         style: {
@@ -77,12 +83,26 @@ function createCourseViewProperties(course: Course, color: string): CourseViewPr
 
 function getCourseViewProperties(
         coursesViewPropertiesMap: Map<string, CourseViewProperties>,
-        course: Course
+        course: Course | undefined
     ) : CourseViewProperties{
-    
-    
+
+    let courseViewProp: CourseViewProperties | undefined;
+
+    //Check if the course is the empty course and if we already have courseViewProps for it
+    if (course === undefined) {
+        courseViewProp = coursesViewPropertiesMap.get("empty");
+    }
+
+    //if we don't already have courseViewProps for it (this shouldnt happen), return the default one.
+    if (course === undefined) {
+        return getEmptyDefaultCourseViewProperties();
+    }
+
+    //The course is defined
+    const courseid = course.hasOwnProperty('id') ? course.id : "_default_";
+
     const defaultCourseViewProperty = {
-        courseid: "_default_",
+        courseid,
 
         label: course.abbrev,
         style: {
@@ -92,7 +112,7 @@ function getCourseViewProperties(
         }
     }
 
-    return coursesViewPropertiesMap.get(course.abbrev) || defaultCourseViewProperty;
+    return coursesViewPropertiesMap.get(course.id) || defaultCourseViewProperty;
 }
 
 function getEmptyDefaultCourseViewProperties() {
@@ -135,16 +155,18 @@ function migrateCoursesViewProperties(newTimetable: Timetable,
     const migratedCoursesViewPropertiesMap = new Map<string, CourseViewProperties>();
 
     for (let i = 0; i < newTimetable.schedule.length; i++) {
-        for (let j = 0; j < newTimetable.schedule[i].courses.length; j++) {
-            const course = newTimetable.schedule[i].courses[j].course;
+        for (let j = 0; j < newTimetable.schedule[i].periods.length; j++) {
+            const course = newTimetable.schedule[i].periods[j].course;
             let courseViewProperties;
 
-            if (course.hasOwnProperty("abbrev")) {
-                courseViewProperties = courseMap.get(course.abbrev);
-            }else {
+            //Check if we have courseViewProps for the course in the existing coursesViewProperties
+            if (!course) {
                 courseViewProperties = courseMap.get("empty");
+            }else {
+                courseViewProperties = courseMap.get(course.id);
             }
 
+            //If we have, set the migratedCoursesViewProps appropriately
             if (courseViewProperties !== undefined) {
                 //if the courseviewprops need to be changed (e.g. because the new timetable has new
                 //info /calls for new props) then courseViewProperties may have to be copied.
@@ -152,7 +174,8 @@ function migrateCoursesViewProperties(newTimetable: Timetable,
                 continue;
             }
 
-            if (course.hasOwnProperty("abbrev")) {
+            //If we dont, meaning this is a new Course (might be the empty course):
+            if (course) {
                 let randomColor = shuffledColors.pop();
 
                 if (randomColor === undefined) {
@@ -161,7 +184,7 @@ function migrateCoursesViewProperties(newTimetable: Timetable,
 
                 const courseViewProperties = createCourseViewProperties(course, randomColor);
 
-                courseMap.set(course.abbrev, courseViewProperties);
+                courseMap.set(course.id, courseViewProperties);
                 migratedCoursesViewPropertiesMap.set(courseViewProperties.courseid, courseViewProperties);
             }else {
                 const emptyCourse = getEmptyDefaultCourseViewProperties();

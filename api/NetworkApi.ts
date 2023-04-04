@@ -57,9 +57,9 @@ async function fetchExamsEndpoint(user: User, timestamp?: number) : Promise<Netw
     let examsEndpoint: string = baseUrl;
 
     if (user.type == "student") {
-        examsEndpoint += `/students/${user.username}/exams`;
+        examsEndpoint += `/students/${user.username}/examschedule`;
     }else{
-        examsEndpoint += `/teachers/${user.username}/exams`;
+        examsEndpoint += `/teachers/${user.username}/examschedule`;
     }
 
     if (timestamp !== undefined) {
@@ -104,7 +104,7 @@ async function fetchJsonContent(endpoint: string) {
             throw new Error("FormatError: Response okay but may not be json.", {cause: NetworkStatusTypes.FORMAT_ERROR});
         }
     } else {
-        throw new Error("ResponseError: Response was bad (not 200 ok).", {cause: {code: NetworkStatusTypes.RESPONSE_ERROR}});
+        throw new Error("ResponseError: Response was bad (not 200 ok).", {cause: NetworkStatusTypes.RESPONSE_ERROR});
     }
 }
 

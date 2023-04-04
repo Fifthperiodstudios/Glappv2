@@ -40,7 +40,7 @@ export default function TimetableView(props: TimetableViewProps) {
     for (let i = 0; i<timetableModel.schedule.length; i++) {
         const lessons: ReactNode[] = [];
 
-        const numLessons = timetableModel.schedule[i].courses.length;
+        const numLessons = timetableModel.schedule[i].periods.length;
 
         const dayColor = i+1 === day ? "#54a3ff" : "grey";
         lessons.push(
@@ -51,11 +51,11 @@ export default function TimetableView(props: TimetableViewProps) {
         k++;
 
         for (let j = 0; j<numLessons; j++) {
-            const period = timetableModel.schedule[i].courses[j];
+            const period = timetableModel.schedule[i].periods[j];
             const course = period.course;
 
             let courseViewProperties;
-            if (!course.hasOwnProperty("abbrev")) {
+            if (!course || !course.hasOwnProperty("id")) {
                 courseViewProperties = coursesViewPropertiesMap.get("empty");
             }else {
                 courseViewProperties = getCourseViewProperties(coursesViewPropertiesMap, course);
@@ -70,6 +70,17 @@ export default function TimetableView(props: TimetableViewProps) {
                         onPress={() => console.log("pressed")}>
                             
                             <RobotoText style={timetableViewStyles.lessonButtonLabel}>{courseViewProperties.label}</RobotoText>
+
+                </TouchableOpacity>
+            )
+            k++;
+        }
+
+        if (numLessons <= 0) {
+            lessons.push(
+                <TouchableOpacity
+                        key={k}
+                        style={{...timetableViewStyles.lessonButton, opacity: 0, width: lessonWidth, height: lessonHeight,}}>
 
                 </TouchableOpacity>
             )

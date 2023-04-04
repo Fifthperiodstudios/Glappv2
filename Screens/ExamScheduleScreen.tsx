@@ -17,6 +17,7 @@ import ErrorView from "../Components/ErrorViewComponent";
 import { getCourseViewProperties, mapFromCoursesViewProperties } from "../Statemanagement/Businesslogic";
 import SuccessPositiveView from "../Components/SuccessPositiveView";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
+import dayjs from "dayjs";
 
 function fetchOfflineFirstExams(
     user: User, 
@@ -184,11 +185,7 @@ function renderSuccessBody(examScheduleModel: ExamSchedule,
                             return <ListComponent 
                                         circleColor={courseViewProperties.style.backgroundColor} 
                                         circleText={courseViewProperties.label} 
-                                        headlineText={
-                                            new Date(item.date)
-                                            .toLocaleDateString('de-DE', {weekday: 'long', month: 'short', day: 'numeric'})
-                                            .toString() + ", von " + item.time.beginPeriod + ". bis " + item.time.endPeriod + ". "
-                                        } 
+                                        headlineText={dayjs(item.date).locale('de').format("DD.MM.YYYY") + ", von " + item.time.beginPeriod + ". bis " + item.time.endPeriod + ". "} 
                                         subHeadlineText={"Klausur bei " + item.course.teacher.abbrev + " in " + item.place.room}
                                         additionalInfo={item.info === "" ? undefined : item.info} 
                                     />

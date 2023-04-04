@@ -2,12 +2,12 @@ import { ReactNode } from "react";
 import { Announcement, CourseChange, ScheduleChangePlan } from "../api/ApiModel";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import ListComponent from "./ListComponent";
-import RobotoText from "./RobotoTextComponent";
-import { Surface, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { View, SectionList, StyleSheet } from "react-native"
 import { getCourseViewProperties } from "../Statemanagement/Businesslogic";
 import GeneralInfoHeader from "./GeneralInfoHeaderComponent";
 import GeneralInfoCard from "./GeneralInfoCardComponent";
+import dayjs from "dayjs";
 
 function renderScheduleChangeItem(courseChange: CourseChange,
     coursesViewPropertiesMap: Map<string, CourseViewProperties>,
@@ -20,25 +20,30 @@ function renderScheduleChangeItem(courseChange: CourseChange,
 
     let subHeadline = "";
 
-    if (courseChange.type === "ROOMCHANGE" && courseChange.newPlace !== undefined) {
+    if (courseChange.newPlace) {
         let newRoom = "?";
         if (courseChange.newPlace.room !== undefined) {
             newRoom = courseChange.newPlace.room;
         }
-        subHeadline = "Bei " + courseChange.course.teacher.abbrev + ", Raumänderung: " + newRoom;
-    }else if (courseChange.type === "SUBSTITUTION" && courseChange.substitute !== undefined) {
+        subHeadline += "Raumänderung: " + newRoom + " ";
+    }
+    
+    if (courseChange.substitute) {
         let substitutionTeacher = "?";
         if (courseChange.substitute.abbrev !== undefined) {
             substitutionTeacher = courseChange.substitute.abbrev;
         }
-        subHeadline = "Vertretung bei " + courseChange.substitute.abbrev;
-    }else {
-        subHeadline = courseChange.type;
+        subHeadline += "Vertretung bei " + substitutionTeacher;
     }
 
     let additionalInfo = courseChange.info.length > 0 ? courseChange.info.substring(0, 145) : undefined;
     if (courseChange.info.length > 145) {
         additionalInfo += "...";
+    }
+
+    if (subHeadline.length <= 0 && additionalInfo) {
+        subHeadline = additionalInfo;
+        additionalInfo = undefined;
     }
 
     let marginBottom = 5;
@@ -50,7 +55,7 @@ function renderScheduleChangeItem(courseChange: CourseChange,
     return <ListComponent
         circleColor={color}
         circleText={label}
-        headlineText={courseChange.period + ". " + label}
+        headlineText={courseChange.time.period + ". " + label}
         subHeadlineText={subHeadline}
         additionalInfo={additionalInfo}
         style={{marginBottom}}
@@ -114,9 +119,7 @@ export default function ScheduleChangesSectionListView(props: ScheduleChangesSec
         sections.push(
             {
                 type: "scheduleChangesSection", 
-                title: new Date(dayScheduleChanges.date)
-                            .toLocaleDateString('de-DE', {weekday: 'long', month: 'short', day: 'numeric'})
-                            .toString(), 
+                title: dayjs(dayScheduleChanges.date).locale('de').format("dddd DD.MM."),
                 auxilliaryData: dayScheduleChanges.announcements,
                 data: dayScheduleChanges.courseChanges
             }

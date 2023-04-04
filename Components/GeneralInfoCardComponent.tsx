@@ -4,6 +4,7 @@ import { Announcement } from "../api/ApiModel";
 import { ReactNode } from "react";
 import RobotoText from "./RobotoTextComponent";
 import { Surface } from "react-native-paper";
+import dayjs from "dayjs";
 
 type GeneralInfoCardProps = {
     announcements: Announcement[],
@@ -15,7 +16,7 @@ export default function GeneralInfoCard(props: GeneralInfoCardProps) {
     let j = 0;
     for (let announcement of props.announcements) {
         announcements.push(
-            <RobotoText key={j} style={{ fontWeight: "bold", color: "#949494" }}>{new Date(announcement.date).toLocaleDateString('de-DE', { weekday: 'long', month: 'short', day: 'numeric' })}:</RobotoText>
+            <RobotoText key={j} style={{ fontWeight: "bold", color: "#949494" }}>{dayjs(announcement.date).locale('de').format('DD. MMMM')}:</RobotoText>
         );
         j++;
         announcements.push(

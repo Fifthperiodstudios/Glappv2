@@ -37,6 +37,7 @@ function fetchScheduleChangesFromNetwork(
         ));
 
     }, (error: Error) => {
+        console.log("scheduleChangesScreen@fetchTimetableWithPropsFromNetwork: " + error.message);
         dispatch(scheduleChangePlanStateChanged(
             {
                 scheduleChangePlan: null, 

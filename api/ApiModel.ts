@@ -1,14 +1,10 @@
-interface Course {
-    id: string,
-    abbrev: string,
-    type: string,
-    title: string,
-    classname: string,
-
-    teacher: {
-        name: string,
-        abbrev: string
-    },
+interface Timetable {
+    timestamp: number,
+    date: string,
+    schedule: {
+        day: string,
+        periods: {time: Time, course?: Course, place?: Place}[]
+    }[]
 };
 
 interface Place {
@@ -19,42 +15,25 @@ interface Time {
     period: number
 }
 
-interface Timetable {
-    timestamp: number,
-    date: string,
-    studentid: string,
+interface Course {
+    id: string,
+    abbrev: string,
+    type: string,
     classname: string,
-    schedule: {
-        day: string,
-        courses: {time: Time, course: Course, place: Place, }[]
-    }[]
+    title?: string,
+
+    teacher: Teacher
 };
 
-interface Announcement {
-    date: string,
-    text: string
+interface Teacher {
+    abbrev: string
 }
 
-interface CourseChange {
-    period: number,
-    course: Course,
-    type: string,
-    info: string,
-
-    substitute: {
-        name: string,
-        abbrev: string
-    } | undefined,
-
-    newPlace: {
-        room: string
-    } | undefined,
-};
-
-interface DayScheduleChanges {
+interface ExamSchedule {
+    timestamp: number,
     date: string,
-    announcements: Announcement[],
-    courseChanges: CourseChange[],
+
+    exams: Exam[]
 }
 
 interface Exam {
@@ -72,19 +51,40 @@ interface Exam {
     asOfDate: string
 }
 
-interface ExamSchedule {
-    timestamp: number,
-    date: string,
-
-    exams: Exam[]
-}
-
 interface ScheduleChangePlan {
     timestamp: number,
-    studentid: string,
     announcements: Announcement[],
 
     dayScheduleChanges: DayScheduleChanges[]
 }
+
+interface DayScheduleChanges {
+    date: string,
+    announcements: Announcement[],
+    courseChanges: CourseChange[],
+}
+
+interface Announcement {
+    date: string,
+    text: string
+}
+
+interface CourseChange {
+    course: Course,
+    time: Time,
+    place: Place,
+
+    info: string,
+
+    substitute: {
+        name: string,
+        abbrev: string
+    } | undefined,
+
+    newPlace: {
+        room: string
+    } | undefined,
+};
+
 
 export { Timetable, ScheduleChangePlan, Announcement, DayScheduleChanges, CourseChange, Course, Exam, ExamSchedule};
