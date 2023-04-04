@@ -18,7 +18,8 @@ const NetworkStatusTypes = {
     ERROR: 1,
     CONNECTION_ERROR: 2, // When we cant even connect to the WEB API
     RESPONSE_ERROR: 3, // When we can connect, but we get a different response than 200 OK
-    FORMAT_ERROR: 4, // When we get a 200 ok but the Response is not formatted correctly
+    UNAUTHORIZED: 4,  // When we can connect, but we get a 401 response
+    FORMAT_ERROR: 5, // When we get a 200 ok but the Response is not formatted correctly
 }
 
 async function fetchTimetableEndpoint(user: User, timestamp?: number): Promise<NetworkResult> {
@@ -103,6 +104,8 @@ async function fetchJsonContent(endpoint: string) {
         }catch(e) {
             throw new Error("FormatError: Response okay but may not be json.", {cause: NetworkStatusTypes.FORMAT_ERROR});
         }
+    }else if(response.status === 401) {
+        throw new Error("UnauthorizedError: Token might nolonger be valid.", {cause: NetworkStatusTypes.UNAUTHORIZED});
     } else {
         throw new Error("ResponseError: Response was bad (not 200 ok).", {cause: NetworkStatusTypes.RESPONSE_ERROR});
     }

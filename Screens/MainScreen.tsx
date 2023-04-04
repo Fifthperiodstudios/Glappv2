@@ -10,7 +10,20 @@ import TimetableScreen from "./TimetableScreen";
 import { FileLocalDataSource } from "../repository/LocalDataSource";
 import { ServerDataSource } from "../api/NetworkApi";
 import { FetchDataStatus, Repository } from "../repository/Repository";
-import {coursesViewPropertiesChanged, timetableStateChanged } from "../Statemanagement/AppSlice";
+import {coursesViewPropertiesChanged, resetState, timetableStateChanged } from "../Statemanagement/AppSlice";
+import { loginStateChanged, LoginStates } from "../Statemanagement/LoginSlice";
+
+export function logout(dispatch: any) {
+    FileLocalDataSource.deleteLocalDataSource().then(() => {
+        console.log("localdatasource deleted");
+        dispatch(resetState());
+        dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
+    }, (error) => {
+        dispatch(resetState());
+        dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
+        console.log(error.message);
+    });
+}
 
 export default function MainScreen() {
 
@@ -38,6 +51,12 @@ export default function MainScreen() {
             return Repository.fetchOfflineFirstTimetableWithProps(user, FileLocalDataSource, ServerDataSource);
         }).then(({data, status}) => {
             const {timetable, coursesViewProperties} = data;
+
+            if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
+                logout(dispatch);
+                return;
+            }
+
             dispatch(coursesViewPropertiesChanged(coursesViewProperties));
             dispatch(timetableStateChanged({timetable, status}));
         }, (error: Error) => {

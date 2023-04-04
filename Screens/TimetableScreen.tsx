@@ -15,6 +15,7 @@ import { mapFromCoursesViewProperties } from "../Statemanagement/Businesslogic";
 import { Timetable } from "../api/ApiModel";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import { User } from "../api/LoginApi";
+import { logout } from "./MainScreen";
 
 function fetchTimetableWithPropsFromNetwork(
     user: User, 
@@ -28,6 +29,11 @@ function fetchTimetableWithPropsFromNetwork(
     Repository.fetchTimetableWithPropsFromNetwork(user, localDataSource, networkDataSource, cachedTimetable, cachedCoursesViewProps).then((result) => {
         const {data, status} = result;
 
+        if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
+            logout(dispatch);
+            return;
+        }
+        
         dispatch(coursesViewPropertiesChanged(data.coursesViewProperties));
         dispatch(timetableStateChanged({timetable: data.timetable, status}));
 

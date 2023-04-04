@@ -18,6 +18,7 @@ import { getCourseViewProperties, mapFromCoursesViewProperties } from "../Statem
 import SuccessPositiveView from "../Components/SuccessPositiveView";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import dayjs from "dayjs";
+import { logout } from "./MainScreen";
 
 function fetchOfflineFirstExams(
     user: User, 
@@ -25,9 +26,14 @@ function fetchOfflineFirstExams(
     networkDataSource: NetworkDataSource,
     dispatch: any) {
 
-    Repository.fetchOfflineFirstExams(user, localDataSource, networkDataSource).then((result: DataHolder<ExamSchedule>) => {
+    Repository.fetchOfflineFirstExams(user, localDataSource, networkDataSource).then((result: DataHolder<ExamSchedule | null>) => {
         const {data, status} = result;
 
+        if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
+            logout(dispatch);
+            return;
+        }
+        
         dispatch(examScheduleStateChanged({examSchedule: data, status}));
 
     }, (error: Error) => {
@@ -55,6 +61,12 @@ function fetchExamsFromNetwork(
 
     Repository.fetchExamsFromNetwork(user, localDataSource, networkDataSource, examSchedule).then((result: DataHolder<ExamSchedule | null>) => {
         const {data, status} = result;
+
+        if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
+            logout(dispatch);
+            return;
+        }
+
         console.log(data);
         dispatch(examScheduleStateChanged({examSchedule: data, status}));
     }, (error: Error) => {

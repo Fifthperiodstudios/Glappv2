@@ -18,6 +18,7 @@ import SuccessPositiveView from "../Components/SuccessPositiveView";
 import GeneralInfoHeader from "../Components/GeneralInfoHeaderComponent";
 import GeneralInfoCard from "../Components/GeneralInfoCardComponent";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
+import { logout } from "./MainScreen";
 
 function fetchScheduleChangesFromNetwork(
     user: User, 
@@ -29,6 +30,11 @@ function fetchScheduleChangesFromNetwork(
     Repository.fetchScheduleChangesFromNetwork(user, networkDataSource, scheduleChangePlan).then((result: DataHolder<ScheduleChangePlan | null>) => {
         const {data, status} = result;
         
+        if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
+            logout(dispatch);
+            return;
+        }
+
         dispatch(scheduleChangePlanStateChanged(
             {
                 scheduleChangePlan: data, 

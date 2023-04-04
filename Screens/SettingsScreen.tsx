@@ -12,11 +12,11 @@ import ColorButton from "../Components/ColorButtonComponent";
 import SettingsHeader from "../Components/SettingsHeaderComponent";
 import { RootStackParamList } from "../AppContent";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
-import { coursesViewPropertiesChanged, courseViewPropertiesChanged, resetState, settingsChanged } from "../Statemanagement/AppSlice";
+import { courseViewPropertiesChanged, resetState, settingsChanged } from "../Statemanagement/AppSlice";
 import { LoginStates, loginStateChanged } from "../Statemanagement/LoginSlice";
-import { deleteLocalDataSource, FileLocalDataSource } from "../repository/LocalDataSource";
+import { FileLocalDataSource } from "../repository/LocalDataSource";
 import { colors, CourseViewProperties } from "../Statemanagement/AppModel";
-import { Repository } from "../repository/Repository";
+import { logout } from "./MainScreen";
 
 export default function SettingsScreen() {
 
@@ -111,17 +111,7 @@ export default function SettingsScreen() {
 
                 <TouchableOpacity 
                     onPress={() => {
-                        console.log("Logging out...");
-
-                        deleteLocalDataSource().then(() => {
-                            console.log("localdatasource deleted");
-                            dispatch(resetState());
-                            dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
-                        }, (error) => {
-                            dispatch(resetState());
-                            dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
-                            console.log(error.message);
-                        });
+                        logout(dispatch);
                     }} 
                     style={settingsStyles.settingsItemClickable}
                 >

@@ -35,16 +35,23 @@ const FetchDataStatus = {
     NETWORK_ERROR_OFFLINE: 7, 
 
     /*
+    This should cause the user to be logged out.
+    */
+    NETWORK_ERROR_UNAUTHORIZED: 8,
+
+    /*
     This is probably a more severe error that the user should be notified about.
     Should be displayed along with offline data, if available.
     */
-    NETWORK_ERROR_OTHER: 8 
+    NETWORK_ERROR_OTHER: 9 
 }
 
 function evaluateNetworkError(e: unknown) : {cause: number, message: string} {
     if (e instanceof Error) {
         if ("cause" in e) {
             if (typeof e.cause === "number") {
+
+
                 return {cause: e.cause, message: e.message};
             }
         }
@@ -61,7 +68,7 @@ async function fetchOfflineFirstTimetable(
     user: User,
     localDataSource: LocalDataSource,
     networkDataSource: NetworkDataSource,
-): Promise<DataHolder<Timetable>> {
+): Promise<DataHolder<Timetable|null>> {
 
     let storedTimestamp: number | undefined;
 
@@ -98,8 +105,8 @@ async function fetchOfflineFirstTimetable(
         console.log(e);
 
         const {cause, message} = evaluateNetworkError(e);
-        networkStatus = cause;
         errorMessage = message.substring(0,20);
+        networkStatus = cause;
     }
 
     if (networkTimetable && localTimetable) {
@@ -142,6 +149,14 @@ async function fetchOfflineFirstTimetable(
                     message: errorMessage
                 }
             }
+        }else if(networkStatus === NetworkStatusTypes.UNAUTHORIZED) {
+            return {
+                data: null,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
+                    message: errorMessage
+                }
+            }
         }else {
             return {
                 data: localTimetable,
@@ -160,12 +175,16 @@ async function fetchOfflineFirstTimetableWithProps(
     user: User,
     localDataSource: LocalDataSource,
     networkDataSource: NetworkDataSource
-): Promise<DataHolder<{timetable: Timetable, 
+): Promise<DataHolder<{timetable: Timetable | null, 
     coursesViewProperties: CourseViewProperties[]
    }>>  {
 
     const timetableHolder = await fetchOfflineFirstTimetable(user, localDataSource, networkDataSource);
-    const coursesViewProperties = await fetchCourseViewProperties(timetableHolder.data, localDataSource);
+
+    let coursesViewProperties: CourseViewProperties[] = [];
+    if (timetableHolder.data) {
+        coursesViewProperties = await fetchCourseViewProperties(timetableHolder.data, localDataSource);
+    }
 
     return {
         data: {
@@ -207,6 +226,14 @@ async function fetchTimetableWithPropsFromNetwork(
                     message: errorMessage
                 }
             };
+        } else if (cause === NetworkStatusTypes.UNAUTHORIZED) {
+            return {
+                data: {timetable: null, coursesViewProperties: []},
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
+                    message: errorMessage
+                }
+            }
         }else {
             return {
                 data: {timetable: cachedTimetable, coursesViewProperties: cachedCoursesViewProperties},
@@ -260,7 +287,7 @@ async function fetchOfflineFirstExams(
     user: User,
     localDataSource: LocalDataSource,
     networkDataSource: NetworkDataSource,
-): Promise<DataHolder<ExamSchedule>> {
+): Promise<DataHolder<ExamSchedule | null>> {
 
     let storedTimestamp: number | undefined;
 
@@ -344,6 +371,14 @@ async function fetchOfflineFirstExams(
                     message: errorMessage
                 }
             }
+        } else if (networkStatus === NetworkStatusTypes.UNAUTHORIZED) {
+            return {
+                data: null,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
+                    message: errorMessage
+                }
+            }
         }else {
             return {
                 data: localExamSchedule,
@@ -379,6 +414,14 @@ async function fetchExamsFromNetwork(
                 data: cachedExamSchedule,
                 status: {
                     status: FetchDataStatus.NETWORK_ERROR_OFFLINE,
+                    message: ""
+                }
+            };
+        }else if (cause === NetworkStatusTypes.UNAUTHORIZED){
+            return {
+                data: null,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
                     message: ""
                 }
             };
@@ -444,15 +487,25 @@ async function fetchScheduleChangesFromNetwork(
         console.log(e);
 
         const {cause, message} = evaluateNetworkError(e);
-        const status = cause === NetworkStatusTypes.CONNECTION_ERROR ? FetchDataStatus.NETWORK_ERROR_OFFLINE : FetchDataStatus.NETWORK_ERROR_OTHER;
-
-        return {
-            data: null,
-            status: {
-                status: status,
-                message: message.substring(0, 20)
-            }
-        };
+        
+        switch(cause) {
+            case NetworkStatusTypes.UNAUTHORIZED:
+                return {
+                    data: null,
+                    status: {
+                        status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
+                        message: message.substring(0, 20)
+                    }
+                };
+            default:
+                return {
+                    data: null,
+                    status: {
+                        status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
+                        message: message.substring(0, 20)
+                    }
+                };
+        }
     }
 
     let data: ScheduleChangePlan | null;
