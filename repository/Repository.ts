@@ -1,6 +1,6 @@
 import { ExamSchedule, ScheduleChangePlan, Timetable } from "../api/ApiModel";
 import { User } from "../api/LoginApi";
-import { NetworkDataSource, NetworkResult } from "../api/NetworkApi";
+import { NetworkDataSource, NetworkStatusTypes } from "../api/NetworkApi";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import { createCoursesViewProperties, migrateCoursesViewProperties } from "../Statemanagement/Businesslogic";
 import { initializeLocalDataSource, LocalDataSource } from "./LocalDataSource";
@@ -21,9 +21,36 @@ const FetchDataStatus = {
     SUCCESS_NO_CHANGE: 2,
     SUCCESS_DATACHANGE: 3,
     SUCCESS: 4,
-    STORAGE_ERROR_NETWORK_DATA: 5,
-    NETWORK_ERROR_OFFLINE_DATA: 6,
-    NETWORK_ERROR: 7,
+
+    STORAGE_ERROR: 5,
+    /*
+    Practically not an error, won't be displayed, as this always happens
+    the first time the app is started.
+    */
+    STORAGE_ERROR_NETWORK_DATA: 6, 
+
+    /*
+    This is display through a greyed out statusbar
+    */
+    NETWORK_ERROR_OFFLINE: 7, 
+
+    /*
+    This is probably a more severe error that the user should be notified about.
+    Should be displayed along with offline data, if available.
+    */
+    NETWORK_ERROR_OTHER: 8 
+}
+
+function evaluateNetworkError(e: unknown) : {cause: number, message: string} {
+    if (e instanceof Error) {
+        if ("cause" in e) {
+            if (typeof e.cause === "number") {
+                return {cause: e.cause, message: e.message};
+            }
+        }
+    }
+
+    return {cause: NetworkStatusTypes.ERROR, message: "Unknown Error"};
 }
 
 async function initializeRepository(schemaVersion?: number) {
@@ -39,19 +66,21 @@ async function fetchOfflineFirstTimetable(
     let storedTimestamp: number | undefined;
 
     let localTimetable: Timetable | null = null;
+
     let networkTimetable: Timetable | null = null;
-    let errorMessage: string = "";
+    let networkStatus: number = NetworkStatusTypes.ERROR;
+
+    let errorMessage = "";
 
     try {
         localTimetable = await localDataSource.fetchLocalTimetable();
         storedTimestamp = localTimetable.timestamp;
     } catch (e) {
-        localTimetable = null;
-
+        console.log("fetchOfflineFirstTimetable@localDataSource.fetchLocalTimetable()");
+    
         if (e instanceof Error) {
-            errorMessage = e.message.substring(0, 20);
-
             console.log("Error accessing localstorage: " + e.message);
+            errorMessage = e.message.substring(0, 20);
         }
     }
 
@@ -61,17 +90,16 @@ async function fetchOfflineFirstTimetable(
             networkTimetable = networkResult.data;
         } else if (networkResult.status === "no-change-since") {
             networkTimetable = localTimetable;
-        } else {
-            networkTimetable = null;
         }
+
+        networkStatus = NetworkStatusTypes.SUCCESS;
     } catch (e) {
-        networkTimetable = null;
+        console.log("fetchOfflinefirstTimetable@networkDataSource.fetchTimetableEndpoint");
+        console.log(e);
 
-        if (e instanceof Error) {
-            errorMessage = e.message.substring(0, 20);
-
-            console.log("Error requesting network timetable: " + e.message);
-        }
+        const {cause, message} = evaluateNetworkError(e);
+        networkStatus = cause;
+        errorMessage = message.substring(0,20);
     }
 
     if (networkTimetable && localTimetable) {
@@ -106,16 +134,26 @@ async function fetchOfflineFirstTimetable(
     }
 
     if (localTimetable) {
-        return {
-            data: localTimetable,
-            status: {
-                status: FetchDataStatus.NETWORK_ERROR_OFFLINE_DATA,
-                message: errorMessage
+        if (networkStatus === NetworkStatusTypes.CONNECTION_ERROR) {
+            return {
+                data: localTimetable,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OFFLINE,
+                    message: errorMessage
+                }
+            }
+        }else {
+            return {
+                data: localTimetable,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OTHER,
+                    message: errorMessage
+                }
             }
         }
     }
 
-    throw new Error("FATAL_ERROR");
+    throw new Error("FatalError: We could neither load the timetable from storage nor from the network.", {cause: FetchDataStatus.FATAL_ERROR});
 }
 
 async function fetchOfflineFirstTimetableWithProps(
@@ -156,13 +194,28 @@ async function fetchTimetableWithPropsFromNetwork(
     try {
         networkResult = await networkDataSource.fetchTimetableEndpoint(user, timestamp);
     }catch(e) {
-        return {
-            data: {timetable: cachedTimetable, coursesViewProperties: cachedCoursesViewProperties},
-            status: {
-                status: FetchDataStatus.NETWORK_ERROR_OFFLINE_DATA,
-                message: ""
+        console.log("fetchTimetableWithPropsFromNetwork@networkDataSource.fetchTimetableEndpoint");
+        console.log(e);
+        const {cause, message} = evaluateNetworkError(e);
+        const errorMessage = message.substring(0, 20);
+    
+        if (cause === NetworkStatusTypes.CONNECTION_ERROR) {
+            return {
+                data: {timetable: cachedTimetable, coursesViewProperties: cachedCoursesViewProperties},
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OFFLINE,
+                    message: errorMessage
+                }
+            };
+        }else {
+            return {
+                data: {timetable: cachedTimetable, coursesViewProperties: cachedCoursesViewProperties},
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OTHER,
+                    message: errorMessage
+                }
             }
-        };
+        }
     }
 
     let timetable: Timetable | null;
@@ -170,8 +223,6 @@ async function fetchTimetableWithPropsFromNetwork(
     let status: DataStatus;
 
     if (networkResult.status === "success") {
-        if (networkResult.data === null) throw new Error("network result data cannot be null when status is success");
-
         timetable = networkResult.data;
         coursesViewProperties = migrateCoursesViewProperties(networkResult.data, cachedCoursesViewProperties);
 
@@ -182,6 +233,11 @@ async function fetchTimetableWithPropsFromNetwork(
 
         localDataSource.storeTimetableLocally(timetable as Timetable);
         localDataSource.storeCoursesPropertiesLocally(coursesViewProperties);
+
+        return {
+            data: {timetable, coursesViewProperties},
+            status
+        }
     }else if (networkResult.status === "no-change-since") {
         timetable = cachedTimetable;
         coursesViewProperties = cachedCoursesViewProperties;
@@ -190,15 +246,14 @@ async function fetchTimetableWithPropsFromNetwork(
             status: FetchDataStatus.SUCCESS_NO_CHANGE,
             message: ""
         }
-    }else {
-        throw new Error("Unexpected value for status property of network result");
+
+        return {
+            data: {timetable, coursesViewProperties},
+            status
+        }
     }
 
-    return {
-        data: {timetable, coursesViewProperties},
-        status
-    }
-
+    throw new Error("FatalError: Unreachable statement reached.");
 }
 
 async function fetchOfflineFirstExams(
@@ -211,6 +266,7 @@ async function fetchOfflineFirstExams(
 
     let localExamSchedule: ExamSchedule | null = null;
     let networkExamSchedule: ExamSchedule | null = null;
+    let networkStatus: number = NetworkStatusTypes.ERROR;
 
     let errorMessage: string = "";
 
@@ -218,6 +274,9 @@ async function fetchOfflineFirstExams(
         localExamSchedule = await localDataSource.fetchLocalExamSchedule();
         storedTimestamp = localExamSchedule.timestamp;
     } catch (e) {
+        console.log("fetchOfflineFirstExams@localDataSource.fetchLocalExamSchedule");
+        console.log(e);
+
         localExamSchedule = null;
 
         if (e instanceof Error) {
@@ -233,17 +292,16 @@ async function fetchOfflineFirstExams(
             networkExamSchedule = networkResult.data;
         } else if (networkResult.status === "no-change-since") {
             networkExamSchedule = localExamSchedule;
-        } else {
-            networkExamSchedule = null;
         }
+        networkStatus = NetworkStatusTypes.SUCCESS;
     } catch (e) {
+        console.log("fetchOfflineFirstExams@networkDataSource.fetchExamsEndpoint");
+        console.log(e);
+
         networkExamSchedule = null;
-
-        if (e instanceof Error) {
-            errorMessage = e.message.substring(0, 20);
-
-            console.log("Error requesting network timetable: " + e.message);
-        }
+        const {cause, message} = evaluateNetworkError(e);
+        networkStatus = cause;
+        errorMessage = message.substring(0, 20);
     }
 
     if (networkExamSchedule && localExamSchedule) {
@@ -278,16 +336,26 @@ async function fetchOfflineFirstExams(
     }
 
     if (localExamSchedule) {
-        return {
-            data: localExamSchedule,
-            status: {
-                status: FetchDataStatus.NETWORK_ERROR_OFFLINE_DATA,
-                message: errorMessage
+        if (networkStatus === NetworkStatusTypes.CONNECTION_ERROR){
+            return {
+                data: localExamSchedule,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OFFLINE,
+                    message: errorMessage
+                }
+            }
+        }else {
+            return {
+                data: localExamSchedule,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OTHER,
+                    message: errorMessage
+                }
             }
         }
     }
 
-    throw new Error("FATAL_ERROR");
+    throw new Error("FatalError: Unreachable statement reached.");
 }
 
 async function fetchExamsFromNetwork(
@@ -302,39 +370,62 @@ async function fetchExamsFromNetwork(
     try {
         networkResult = await networkDataSource.fetchExamsEndpoint(user, timestamp);
     }catch(e) {
-        return {
-            data: cachedExamSchedule,
-            status: {
-                status: FetchDataStatus.NETWORK_ERROR_OFFLINE_DATA,
-                message: ""
-            }
-        };
+        console.log("fetchExamsFromNetwork@networkDataSource.fetchExamsEndpoint");
+        console.log(e);
+
+        const {cause, message} = evaluateNetworkError(e);
+        if (cause === NetworkStatusTypes.CONNECTION_ERROR) {
+            return {
+                data: cachedExamSchedule,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OFFLINE,
+                    message: ""
+                }
+            };
+        }else {
+            return {
+                data: cachedExamSchedule,
+                status: {
+                    status: FetchDataStatus.NETWORK_ERROR_OTHER,
+                    message: ""
+                }
+            };
+        }
     }
+
     let data: ExamSchedule | null;
     let status: DataStatus;
 
     if (networkResult.status === "success") {
         data = networkResult.data;
+
         status = {
             status: FetchDataStatus.SUCCESS_DATACHANGE,
             message: ""
         }
 
         localDataSource.storeExamScheduleLocally(networkResult.data);
+
+        return {
+            data,
+            status
+        }
+
     }else if (networkResult.status === "no-change-since"){
         data = cachedExamSchedule;
         status = {
             status: FetchDataStatus.SUCCESS_NO_CHANGE,
             message: ""
         }
-    }else {
-        throw new Error("Unexpected value for status property of network result");
+
+        return {
+            data,
+            status
+        }
     }
 
-    return {
-        data,
-        status
-    }
+    throw new Error("FatalError: Unreachable statement reached.")
+
 }
 
 async function fetchScheduleChangesFromNetwork(
@@ -344,31 +435,55 @@ async function fetchScheduleChangesFromNetwork(
 ): Promise<DataHolder<ScheduleChangePlan | null>> {
 
     const timestamp = scheduleChangePlan === null ? undefined : scheduleChangePlan.timestamp;
-    const networkResult = await networkDataSource.fetchScheduleChangesEndpoint(user, timestamp);
+    let networkResult;
+
+    try {
+        networkResult = await networkDataSource.fetchScheduleChangesEndpoint(user, timestamp);
+    }catch (e) {
+        console.log("fetchScheduleChangesFromNetwork@networkDataSource.fetchScheduleChangesEndpoint");
+        console.log(e);
+
+        const {cause, message} = evaluateNetworkError(e);
+        const status = cause === NetworkStatusTypes.CONNECTION_ERROR ? FetchDataStatus.NETWORK_ERROR_OFFLINE : FetchDataStatus.NETWORK_ERROR_OTHER;
+
+        return {
+            data: null,
+            status: {
+                status: status,
+                message: message.substring(0, 20)
+            }
+        };
+    }
+
     let data: ScheduleChangePlan | null;
     let status: DataStatus;
 
     if (networkResult.status === "success") {
         data = networkResult.data;
+
         status = {
             status: FetchDataStatus.SUCCESS_DATACHANGE,
             message: ""
         }
 
+        return {
+            data,
+            status
+        }
     }else if (networkResult.status === "no-change-since"){
         data = scheduleChangePlan;
         status = {
             status: FetchDataStatus.SUCCESS_NO_CHANGE,
             message: ""
         }
-    }else {
-        throw new Error("Unexpected value for status property of network result");
+
+        return {
+            data,
+            status
+        }
     }
 
-    return {
-        data,
-        status
-    }
+    throw new Error("FatalError: Unreachable statement reached.")
 }
 
 async function fetchCourseViewProperties(timetable: Timetable, localDataSource: LocalDataSource) {

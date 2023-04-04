@@ -13,6 +13,14 @@ interface NetworkDataSource {
     fetchExamsEndpoint: (user: User, timestamp?: number) => Promise<NetworkResult>
 };
 
+const NetworkStatusTypes = {
+    SUCCESS: 0,
+    ERROR: 1,
+    CONNECTION_ERROR: 2, // When we cant even connect to the WEB API
+    RESPONSE_ERROR: 3, // When we can connect, but we get a different response than 200 OK
+    FORMAT_ERROR: 4, // When we get a 200 ok but the Response is not formatted correctly
+}
+
 async function fetchTimetableEndpoint(user: User, timestamp?: number): Promise<NetworkResult> {
     let timetableEndpoint: string = baseUrl;
 
@@ -26,7 +34,7 @@ async function fetchTimetableEndpoint(user: User, timestamp?: number): Promise<N
         timetableEndpoint += `?timestamp=${timestamp}`;
     }
 
-    return fetchJsonContent(timetableEndpoint, user.token);
+    return validateNetworkResultSchema(await fetchJsonContent(timetableEndpoint));
 }
 
 async function fetchScheduleChangesEndpoint(user: User, timestamp?: number) : Promise<NetworkResult>{
@@ -42,7 +50,7 @@ async function fetchScheduleChangesEndpoint(user: User, timestamp?: number) : Pr
         substitutionsEndpoint += `?timestamp=${timestamp}`;
     }
 
-    return fetchJsonContent(substitutionsEndpoint, user.token);
+    return validateNetworkResultSchema(await fetchJsonContent(substitutionsEndpoint));
 }
 
 async function fetchExamsEndpoint(user: User, timestamp?: number) : Promise<NetworkResult>{
@@ -58,23 +66,45 @@ async function fetchExamsEndpoint(user: User, timestamp?: number) : Promise<Netw
         examsEndpoint += `?timestamp=${timestamp}`;
     }
 
-    return fetchJsonContent(examsEndpoint, user.token);
+    return validateNetworkResultSchema(await fetchJsonContent(examsEndpoint));
 }
 
-async function fetchJsonContent(endpoint: string, token: string) {
-    let response = await fetch(endpoint);
+function validateNetworkResultSchema(response: any) {
+    if (response.hasOwnProperty('status') &&
+        response.hasOwnProperty('data')) {
+            if (response.status === "success") {
+                if (!response.data) {
+                    throw new Error("FormatError: Response is 'success' but data field is null.", {cause: NetworkStatusTypes.FORMAT_ERROR});
+                }
+                return response;
+            } else if (response.status === "no-change-since") {
+                return response;
+            } else {
+                throw new Error("FormatError: Response has unexpected 'status' value.", {cause: NetworkStatusTypes.FORMAT_ERROR});
+            }
+    }else {
+        throw new Error("FormatError: Response has unexpected structure.", {cause: NetworkStatusTypes.FORMAT_ERROR});
+    }
+}
+
+async function fetchJsonContent(endpoint: string) {
+    let response;
+    
+    try {
+        response = await fetch(endpoint);
+    }catch(e) {
+        console.log(e);
+        throw new Error("ConnectionError: Error requesting from Network.", {cause: NetworkStatusTypes.CONNECTION_ERROR});
+    }
 
     if (response.ok) {
-        const jsonResponse = await response.json();
-
-        if (jsonResponse.hasOwnProperty('status') &&
-            jsonResponse.hasOwnProperty('data')) {
-            return jsonResponse;
-        }else {
-            throw new Error("Format Error");
+        try {
+            return await response.json();
+        }catch(e) {
+            throw new Error("FormatError: Response okay but may not be json.", {cause: NetworkStatusTypes.FORMAT_ERROR});
         }
     } else {
-        throw new Error("Response Error");
+        throw new Error("ResponseError: Response was bad (not 200 ok).", {cause: {code: NetworkStatusTypes.RESPONSE_ERROR}});
     }
 }
 
@@ -84,4 +114,4 @@ export const ServerDataSource = {
     fetchExamsEndpoint
 };
 
-export {NetworkResult, NetworkDataSource};
+export {NetworkResult, NetworkStatusTypes, NetworkDataSource};

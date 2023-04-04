@@ -12,7 +12,6 @@ const ActionStatus = {
     CREATED_AND_SCHEMA_CHANGED: 3,
 };
 
-
 async function initializeLocalDataSource(storedSchemaVersion?: number) : Promise<Number>{
     const dirInfo = await FileSystem.getInfoAsync(localDirectory);
     if (dirInfo.exists) {
@@ -72,12 +71,12 @@ async function fetchLocalExamSchedule() : Promise<ExamSchedule>{
     const dirInfo = await FileSystem.getInfoAsync(localDirectory + "/examschedule.json");
 
     if (!dirInfo.exists) {
-        throw new Error("ExamSchedule_DOESNT_EXIST");
+        throw new Error("EXAMSCHEDULE_DOESNT_EXIST");
     }
 
-    const ExamSchedule = await FileSystem.readAsStringAsync(localDirectory + "/examschedule.json");
+    const examSchedule = await FileSystem.readAsStringAsync(localDirectory + "/examschedule.json");
 
-    return JSON.parse(ExamSchedule);
+    return JSON.parse(examSchedule);
 }
 
 async function storeCoursesPropertiesLocally(courseViewProperties: CourseViewProperties[]) {

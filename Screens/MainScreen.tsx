@@ -5,12 +5,12 @@ import { User } from "../api/LoginApi";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
 
 import ExamScheduleScreen from "./ExamScheduleScreen";
-import ScheduleChangeScreen from "./ScheduleChangeScreen";
+import ScheduleChangesScreen from "./ScheduleChangesScreen";
 import TimetableScreen from "./TimetableScreen";
 import { FileLocalDataSource } from "../repository/LocalDataSource";
 import { ServerDataSource } from "../api/NetworkApi";
 import { FetchDataStatus, Repository } from "../repository/Repository";
-import {coursesViewPropertiesChanged, slotsViewPropertiesChanged, timetableStateChanged } from "../Statemanagement/AppSlice";
+import {coursesViewPropertiesChanged, timetableStateChanged } from "../Statemanagement/AppSlice";
 
 export default function MainScreen() {
 
@@ -26,7 +26,7 @@ export default function MainScreen() {
 
     const renderScene = BottomNavigation.SceneMap({
         timetable: TimetableScreen,
-        scheduleChanges: ScheduleChangeScreen,
+        scheduleChanges: ScheduleChangesScreen,
         examSchedule: ExamScheduleScreen,
     });
 
@@ -40,11 +40,11 @@ export default function MainScreen() {
             const {timetable, coursesViewProperties} = data;
             dispatch(coursesViewPropertiesChanged(coursesViewProperties));
             dispatch(timetableStateChanged({timetable, status}));
-        }, (error) => {
+        }, (error: Error) => {
             dispatch(timetableStateChanged({timetable: null,
                 status: {
                     status: FetchDataStatus.FATAL_ERROR,
-                    message: "Laden aus dem Speicher und vom Netzwerk gescheitert."
+                    message: error.message
                 }
             }));
         });
