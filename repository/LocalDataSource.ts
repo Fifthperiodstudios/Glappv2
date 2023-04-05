@@ -12,11 +12,11 @@ const ActionStatus = {
     CREATED_AND_SCHEMA_CHANGED: 3,
 };
 
-async function initializeLocalDataSource(storedSchemaVersion?: number) : Promise<Number>{
+async function initializeLocalDataSource(storedSchemaVersion: number | null) : Promise<Number>{
     const dirInfo = await FileSystem.getInfoAsync(localDirectory);
     if (dirInfo.exists) {
         console.log("Directory exists");
-        if (storedSchemaVersion === undefined || storedSchemaVersion < schemaVersion) {
+        if (storedSchemaVersion === null || storedSchemaVersion < schemaVersion) {
             console.log("Directory contains data of old schema version");
             await FileSystem.deleteAsync(localDirectory);
             await FileSystem.makeDirectoryAsync(localDirectory, { intermediates: true });
@@ -102,7 +102,7 @@ async function fetchLocalCoursesViewProperties() : Promise<CourseViewProperties[
 }
 
 interface LocalDataSource {
-    initializeLocalDataSource: (storedSchemaVersion?: number) => Promise<Number>,
+    initializeLocalDataSource: (storedSchemaVersion: number | null) => Promise<Number>,
     deleteLocalDataSource: () => Promise<void>,
     storeTimetableLocally: (timetable: Timetable) => Promise<void>,
     fetchLocalTimetable: () => Promise<Timetable>,
@@ -128,13 +128,5 @@ export {
     ActionStatus, 
     schemaVersion, 
     LocalDataSource,
-    initializeLocalDataSource, 
-    deleteLocalDataSource, 
-    storeTimetableLocally, 
-    fetchLocalTimetable, 
-    storeExamScheduleLocally,
-    fetchLocalExamSchedule,
-    storeCoursesPropertiesLocally, 
-    fetchLocalCoursesViewProperties
 };
 

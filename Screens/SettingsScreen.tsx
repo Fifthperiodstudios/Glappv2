@@ -3,7 +3,7 @@ import { View, TouchableOpacity, ScrollView, StyleSheet, Dimensions } from "reac
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 import { Dialog, Portal, Switch, Text } from "react-native-paper";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -12,21 +12,32 @@ import ColorButton from "../Components/ColorButtonComponent";
 import SettingsHeader from "../Components/SettingsHeaderComponent";
 import { RootStackParamList } from "../AppContent";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
-import { courseViewPropertiesChanged, resetState, settingsChanged } from "../Statemanagement/AppSlice";
+import { courseViewPropertiesChanged, resetState, preferencesChanged } from "../Statemanagement/AppSlice";
 import { LoginStates, loginStateChanged } from "../Statemanagement/LoginSlice";
 import { FileLocalDataSource } from "../repository/LocalDataSource";
 import { colors, CourseViewProperties } from "../Statemanagement/AppModel";
-import { logout } from "./MainScreen";
+import { SettingsManager } from "../repository/Settings";
+
+export function logout(dispatch: any) {
+    FileLocalDataSource.deleteLocalDataSource()
+    .then(() => SettingsManager.resetPreferences())
+    .then(() => SettingsManager.logoutUser())
+    .then(() => {
+        dispatch(resetState());
+        dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
+    });
+}
 
 export default function SettingsScreen() {
 
     const dispatch = useAppDispatch();
     const coursesViewProperties = useAppSelector((state) => state.appReducer.coursesViewProperties);
-    const settings = useAppSelector((state) => state.appReducer.settings);
-    const [showEmptyCourse, setShowEmptyCourse] = useState(settings.showEmptyCourse);
+    const preferences = useAppSelector((state) => state.appReducer.settings.preferences);
+    const [showEmptyCourse, setShowEmptyCourse] = useState(preferences.showEmptyCourse);
 
     const [colorDialogIsVisible, setColorDialogVisibility] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState<CourseViewProperties|null>(null);
+    const [settingsHaveChanged, setSettingsHaveChanged] = useState(false);
 
     const courseButtons : ReactNode[] = [];
     const colorButtons: ReactNode[] = [];
@@ -53,6 +64,7 @@ export default function SettingsScreen() {
                     setColorDialogVisibility(false);
 
                     if (selectedCourse !== null) {
+                        setSettingsHaveChanged(true);
                         dispatch(courseViewPropertiesChanged({courseid: selectedCourse.courseid, label: selectedCourse.label, style: {...selectedCourse.style, backgroundColor: prop}}))
                     }
                 }} color={prop} diameter={(Dimensions.get('screen').width * 0.60)/5}/>
@@ -63,10 +75,17 @@ export default function SettingsScreen() {
 
     const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, "Settings">>();
 
+    useEffect(()=>{
+        FileLocalDataSource.storeCoursesPropertiesLocally(coursesViewProperties);
+        SettingsManager.setShowEmptyCourse(showEmptyCourse);
+    }, [settingsHaveChanged]);
+
     return (
         <SafeAreaView style={{flex: 1}}>
             <StatusBar />
-            <SettingsHeader/>
+            <SettingsHeader onPress={() => {
+                nav.navigate('Home');
+            }}/>
             <ScrollView style={{flex: 1, marginTop: 20}} contentContainerStyle={{flex: 1, alignItems: "center", marginHorizontal: 30}}>
                 <View style={settingsStyles.settingsItemWithSwitch}>
                     <MaterialCommunityIcons style={{marginRight: 15}} name="bell" size={20} color="grey"/>
@@ -90,8 +109,9 @@ export default function SettingsScreen() {
                             }
                         }
 
-                        dispatch(settingsChanged({...settings, showEmptyCourse: !showEmptyCourse}));
+                        dispatch(preferencesChanged({...preferences, showEmptyCourse: !showEmptyCourse}));
                         setShowEmptyCourse(!showEmptyCourse);
+                        setSettingsHaveChanged(true);
                     }} />
                 </View>
 

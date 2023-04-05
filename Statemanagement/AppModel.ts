@@ -21,15 +21,6 @@ interface CourseViewProperties {
     visible?: boolean,
 }
 
-interface SlotViewProperties {
-    slotid: [number, number]
-}
-
-interface Settings {
-    showEmptyCourse: boolean,
-    showNotifications: boolean,
-}
-
 const colors = [
     "#F1C40F", //bienen gelb
     "#E67E22", //carrot gelb
@@ -49,4 +40,4 @@ const colors = [
     "#95A5A6", //grau
 ];
 
-export { CourseViewProperties, SlotViewProperties, Settings, colors};
+export { CourseViewProperties, colors};

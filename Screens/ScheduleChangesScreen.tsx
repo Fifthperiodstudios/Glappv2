@@ -18,7 +18,7 @@ import SuccessPositiveView from "../Components/SuccessPositiveView";
 import GeneralInfoHeader from "../Components/GeneralInfoHeaderComponent";
 import GeneralInfoCard from "../Components/GeneralInfoCardComponent";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
-import { logout } from "./MainScreen";
+import { logout } from "./SettingsScreen";
 
 function fetchScheduleChangesFromNetwork(
     user: User, 
@@ -173,7 +173,7 @@ export default function ScheduleChangeScreen() {
 
     const dispatch = useAppDispatch();
 
-    const user = useAppSelector((state) => state.appReducer.user);
+    const user = useAppSelector((state) => state.appReducer.settings.user);
 
     const scheduleChangePlanState = useAppSelector((state) => state.appReducer.scheduleChangePlanState);
     const scheduleChangePlanModel = useAppSelector((state) => state.appReducer.scheduleChangePlan);

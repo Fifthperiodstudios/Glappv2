@@ -10,8 +10,10 @@ import SettingsScreen from './Screens/SettingsScreen';
 import { loadAsync } from 'expo-font';
 import { useCallback, useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-
-import { useAppSelector } from './Statemanagement/hooks';
+import { SettingsManager } from './repository/Settings';
+import { useAppDispatch, useAppSelector } from './Statemanagement/hooks';
+import { loggedIn, preferencesChanged } from './Statemanagement/AppSlice';
+import { LoginStates, loginStateChanged } from './Statemanagement/LoginSlice';
 
 const theme = {
   "colors": {
@@ -95,26 +97,12 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppContent = () => {
 
-  const isSignedIn = useAppSelector(state => state.loginReducer.isSignedIn);
+  const isSignedIn = useAppSelector((state) => state.loginReducer.isSignedIn);
+  const dispatch = useAppDispatch();
 
   const [appIsReady, setAppIsReady] = useState(false);
-
-  /*
-  if exists(localData):
-    if localData.token != "":
-      if localData.version < app.version:
-        deleteAllData except token
-        load new data via token
-        save as new schema
-      else:
-        show timetable, exam schedule with old data
-        load new data if exists
-    else:
-      deleteAllData
-      show loginScreen
-  else:
-      show loginScreen  
-  */
+  const [fontLoaded, setFontIsLoaded] = useState(false);
+  const [loginStateDetermined, setIsLoginStateDetermined] = useState(false);
 
   useEffect(() => {
     async function prepare() {
@@ -128,12 +116,38 @@ const AppContent = () => {
         console.warn(e);
       } finally {
         // Tell the application to render
-        setAppIsReady(true);
+        setFontIsLoaded(true);
+        setAppIsReady(loginStateDetermined);
       }
     }
 
     prepare();
   }, []);
+
+  useEffect(() => {
+    SettingsManager.getUser().then((user) => {
+      dispatch(loggedIn(user));
+      dispatch(loginStateChanged({
+        isSignedIn: true,
+        status: {
+          status: LoginStates.LOGGED_IN,
+          message: ""
+        }
+      }));
+    }, (error) => {
+      console.log("error, no user in asyncprefs");
+      dispatch(loginStateChanged({
+        isSignedIn: false,
+        status: {
+          status: LoginStates.LOGGED_OUT,
+          message: ""
+        }
+      }));
+    }).finally(() => {
+      setIsLoginStateDetermined(true);
+      setAppIsReady(fontLoaded);
+    });
+  }, [isSignedIn, fontLoaded])
 
   const onLayoutRootView = useCallback(async () => {
     if (appIsReady) {

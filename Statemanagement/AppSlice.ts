@@ -1,11 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { User } from "../api/LoginApi";
 import { ExamSchedule, ScheduleChangePlan, Timetable } from "../api/ApiModel";
-import { CourseViewProperties, Settings, SlotViewProperties } from "./AppModel";
+import { CourseViewProperties } from "./AppModel";
 import { DataStatus, FetchDataStatus } from "../repository/Repository";
+import { initalSettingsState, Preferences, Settings } from "../repository/Settings";
 
 interface AppState {
-    user: User,
     settings: Settings,
 
     coursesViewProperties: CourseViewProperties[];
@@ -22,12 +22,7 @@ interface AppState {
 }
 
 const initialState: AppState = {
-    user: { username: "", token: "", type: "" },
-
-    settings: {
-        showEmptyCourse: true,
-        showNotifications: true,
-    },
+    settings: initalSettingsState,
 
     coursesViewProperties: [],
     temporaryCoursesViewProperties: [],
@@ -50,7 +45,7 @@ export const appSlice = createSlice({
         loggedIn: (state, action: PayloadAction<User>) => {
             return {
                 ...state,
-                user: {...action.payload}
+                settings: {...state.settings, user: action.payload}
             };
         },
 
@@ -69,14 +64,8 @@ export const appSlice = createSlice({
             return state;
         },
 
-        slotsViewPropertiesChanged: (state, action: PayloadAction<SlotViewProperties[]>) => {
-            return { ...state, slotsViewProperties: action.payload };
-        },
-
         timetableStateChanged: (state, action: PayloadAction<{ timetable: Timetable | null, status: DataStatus }>) => {
-
             return { ...state, timetable: action.payload.timetable, timetableState: action.payload.status };
-
         },
 
         scheduleChangePlanStateChanged: (state, action: PayloadAction<{ scheduleChangePlan: ScheduleChangePlan | null, status: DataStatus }>) => {
@@ -84,12 +73,11 @@ export const appSlice = createSlice({
         },
 
         examScheduleStateChanged: (state, action: PayloadAction<{ examSchedule: ExamSchedule | null, status: DataStatus }>) => {
-
             return { ...state, examSchedule: action.payload.examSchedule, examScheduleState: action.payload.status };
         },
 
-        settingsChanged: (state, action: PayloadAction<Settings>) => {
-            return { ...state, settings: action.payload };
+        preferencesChanged: (state, action: PayloadAction<Preferences>) => {
+            return { ...state, settings: {...state.settings, preferences: action.payload} };
         },
 
         resetState: () => {
@@ -99,4 +87,4 @@ export const appSlice = createSlice({
 });
 
 export default appSlice.reducer;
-export const { loggedIn, settingsChanged, examScheduleStateChanged, courseViewPropertiesChanged, resetState, coursesViewPropertiesChanged, slotsViewPropertiesChanged, timetableStateChanged, scheduleChangePlanStateChanged } = appSlice.actions;
+export const { loggedIn, preferencesChanged, examScheduleStateChanged, courseViewPropertiesChanged, resetState, coursesViewPropertiesChanged, timetableStateChanged, scheduleChangePlanStateChanged } = appSlice.actions;

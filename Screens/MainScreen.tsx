@@ -7,27 +7,17 @@ import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
 import ExamScheduleScreen from "./ExamScheduleScreen";
 import ScheduleChangesScreen from "./ScheduleChangesScreen";
 import TimetableScreen from "./TimetableScreen";
-import { FileLocalDataSource } from "../repository/LocalDataSource";
+import { ActionStatus, FileLocalDataSource } from "../repository/LocalDataSource";
 import { ServerDataSource } from "../api/NetworkApi";
 import { FetchDataStatus, Repository } from "../repository/Repository";
-import {coursesViewPropertiesChanged, resetState, timetableStateChanged } from "../Statemanagement/AppSlice";
-import { loginStateChanged, LoginStates } from "../Statemanagement/LoginSlice";
+import {coursesViewPropertiesChanged, preferencesChanged, timetableStateChanged } from "../Statemanagement/AppSlice";
+import { logout } from "./SettingsScreen";
+import { initalSettingsState, SettingsManager } from "../repository/Settings";
 
-export function logout(dispatch: any) {
-    FileLocalDataSource.deleteLocalDataSource().then(() => {
-        console.log("localdatasource deleted");
-        dispatch(resetState());
-        dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
-    }, (error) => {
-        dispatch(resetState());
-        dispatch(loginStateChanged({isSignedIn: false, status: {status: LoginStates.LOGGED_OUT, message: ""}}));
-        console.log(error.message);
-    });
-}
 
 export default function MainScreen() {
 
-    const user: User = useAppSelector((state) => state.appReducer.user);
+    const user: User = useAppSelector((state) => state.appReducer.settings.user);
     const dispatch = useAppDispatch();
 
     const [index, setIndex] = React.useState(0);
@@ -44,29 +34,39 @@ export default function MainScreen() {
     });
 
     useEffect(() => {
-        console.log("use Effect in start");
-        let storedSchema = 1.0;
 
-        Repository.initializeRepository(storedSchema).then(() => {
-            return Repository.fetchOfflineFirstTimetableWithProps(user, FileLocalDataSource, ServerDataSource);
-        }).then(({data, status}) => {
-            const {timetable, coursesViewProperties} = data;
-
-            if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
-                logout(dispatch);
-                return;
-            }
-
-            dispatch(coursesViewPropertiesChanged(coursesViewProperties));
-            dispatch(timetableStateChanged({timetable, status}));
-        }, (error: Error) => {
-            dispatch(timetableStateChanged({timetable: null,
-                status: {
-                    status: FetchDataStatus.FATAL_ERROR,
-                    message: error.message
-                }
-            }));
+        SettingsManager.getPreferences().then((prefs) => {
+            console.log("prefs " + prefs.showEmptyCourse);
+            dispatch(preferencesChanged(prefs));
         });
+
+        SettingsManager.getStoredSchemaVersion()
+            .then((storedSchema) => Repository.initializeRepository(FileLocalDataSource, storedSchema))
+            .then((status) => {
+                if (status === ActionStatus.CREATED_AND_SCHEMA_CHANGED || status === ActionStatus.SUCCESS) {
+                    SettingsManager.setStoredSchemaVersion(FileLocalDataSource.schemaVersion);
+                }
+
+                return Repository.fetchOfflineFirstTimetableWithProps(user, FileLocalDataSource, ServerDataSource)
+            })
+            .then(({data, status}) => {
+                const {timetable, coursesViewProperties} = data;
+
+                if (status.status === FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED) {
+                    logout(dispatch);
+                    return;
+                }
+
+                dispatch(coursesViewPropertiesChanged(coursesViewProperties));
+                dispatch(timetableStateChanged({timetable, status}));
+            }, (error: Error) => {
+                dispatch(timetableStateChanged({timetable: null,
+                    status: {
+                        status: FetchDataStatus.FATAL_ERROR,
+                        message: error.message
+                    }
+                }));
+            });
     }, []);
 
     return (

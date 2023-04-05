@@ -1,9 +1,9 @@
 import { ExamSchedule, ScheduleChangePlan, Timetable } from "../api/ApiModel";
 import { User } from "../api/LoginApi";
 import { NetworkDataSource, NetworkStatusTypes } from "../api/NetworkApi";
+import { LocalDataSource } from "./LocalDataSource";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import { createCoursesViewProperties, migrateCoursesViewProperties } from "../Statemanagement/Businesslogic";
-import { initializeLocalDataSource, LocalDataSource } from "./LocalDataSource";
 
 interface DataStatus {
     status: number,
@@ -60,8 +60,8 @@ function evaluateNetworkError(e: unknown) : {cause: number, message: string} {
     return {cause: NetworkStatusTypes.ERROR, message: "Unknown Error"};
 }
 
-async function initializeRepository(schemaVersion?: number) {
-    return await initializeLocalDataSource(schemaVersion);
+async function initializeRepository(localDataSource: LocalDataSource, schemaVersion: number | null) {
+    return await localDataSource.initializeLocalDataSource(schemaVersion);
 }
 
 async function fetchOfflineFirstTimetable(
@@ -129,6 +129,7 @@ async function fetchOfflineFirstTimetable(
     }
 
     if (networkTimetable) {
+        console.log("storing timetable locally");
         localDataSource.storeTimetableLocally(networkTimetable);
 
         return {
@@ -501,7 +502,7 @@ async function fetchScheduleChangesFromNetwork(
                 return {
                     data: null,
                     status: {
-                        status: FetchDataStatus.NETWORK_ERROR_UNAUTHORIZED,
+                        status: FetchDataStatus.NETWORK_ERROR_OTHER,
                         message: message.substring(0, 20)
                     }
                 };

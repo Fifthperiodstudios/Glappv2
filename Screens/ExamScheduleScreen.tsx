@@ -18,7 +18,7 @@ import { getCourseViewProperties, mapFromCoursesViewProperties } from "../Statem
 import SuccessPositiveView from "../Components/SuccessPositiveView";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import dayjs from "dayjs";
-import { logout } from "./MainScreen";
+import { logout } from "./SettingsScreen";
 
 function fetchOfflineFirstExams(
     user: User, 
@@ -221,13 +221,12 @@ function renderSuccessBody(examScheduleModel: ExamSchedule,
 export default function ExamScheduleScreen() {
 
     const dispatch = useAppDispatch();
-    const user = useAppSelector((state) => state.appReducer.user);
+    const user = useAppSelector((state) => state.appReducer.settings.user);
     const examScheduleModel = useAppSelector((state) => state.appReducer.examSchedule);
     const examScheduleState = useAppSelector((state) => state.appReducer.examScheduleState);
     const coursesViewPropertiesMap = mapFromCoursesViewProperties(useAppSelector((state) => state.appReducer.coursesViewProperties));
 
     const [refreshing, setRefreshing] = useState(false);
-
 
     useEffect(() => {
         fetchOfflineFirstExams(user, FileLocalDataSource, ServerDataSource, dispatch);

@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {RefreshControl, ScrollView, useWindowDimensions, View} from "react-native";
-import React, { ReactElement, ReactNode, useState } from "react";
+import React, { ReactElement, useState } from "react";
 
 import ScreenHeader from "../Components/ScreenHeaderComponent";
 import { useAppDispatch, useAppSelector } from "../Statemanagement/hooks";
@@ -15,7 +15,7 @@ import { mapFromCoursesViewProperties } from "../Statemanagement/Businesslogic";
 import { Timetable } from "../api/ApiModel";
 import { CourseViewProperties } from "../Statemanagement/AppModel";
 import { User } from "../api/LoginApi";
-import { logout } from "./MainScreen";
+import { logout } from "./SettingsScreen";
 
 function fetchTimetableWithPropsFromNetwork(
     user: User, 
@@ -186,7 +186,7 @@ export default function TimetableScreen() {
     const timetableState = useAppSelector((state) => state.appReducer.timetableState);
     const timetableModel = useAppSelector((state) => state.appReducer.timetable);
 
-    const user = useAppSelector((state) => state.appReducer.user);
+    const user = useAppSelector((state) => state.appReducer.settings.user);
     const coursesViewProperties = useAppSelector((state) => state.appReducer.coursesViewProperties);
     
     const coursesViewPropertiesMap = mapFromCoursesViewProperties(coursesViewProperties);

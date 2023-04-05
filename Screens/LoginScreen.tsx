@@ -10,6 +10,7 @@ import LoginComponent from '../Components/LoginComponent'
 import { loggedIn } from '../Statemanagement/AppSlice';
 import { useAppDispatch } from '../Statemanagement/hooks';
 import { loginStateChanged, LoginStates } from '../Statemanagement/LoginSlice';
+import { SettingsManager } from '../repository/Settings';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
@@ -19,8 +20,9 @@ export default function LoginScreen({navigation, route} : Props) {
   let onLoginStudent = function(username: string, password: string) {
     console.log("logging In");
     loginStudent(username, password).then((user) => {
-      dispatch(loggedIn(user));
+      SettingsManager.saveUser(user);
 
+      dispatch(loggedIn(user));
       dispatch(loginStateChanged({
         isSignedIn: true,
         status: {
